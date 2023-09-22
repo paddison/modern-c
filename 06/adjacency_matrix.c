@@ -29,35 +29,31 @@ bool add_edge(size_t tail, size_t head, size_t N, bool G[N][N]) {
 
 size_t bfs(size_t N, size_t start, size_t goal, bool G[6][6]) {
   bool seen[N];
-  size_t queue[N * N];
-
+  size_t queue[N];
+  size_t cur = 0;
+  size_t size = 1;
   for (size_t i = 0; i < N; ++i) {
     seen[i] = false;
+    queue[i] = 0;
   }
 
-  for (size_t i = 0; i < N * N; ++i) {
-    queue[i] = SIZE_MAX;
-  }
- 
+  // add start to queue and seen
   seen[start] = true;
-  queue[0] = start;
+  queue[cur] = start;
 
-  size_t queue_pos = 0;
-  size_t queue_size = 1;
-
-  while (queue_pos < queue_size) {
-    size_t current = queue[queue_pos];
-    if (current == goal) {
+  while (cur < size) {
+    size_t v = queue[cur];
+    if (v == goal) {
       return goal;
     }
-    for (size_t j = 0; j < N; ++j) {
-      if (!seen[j] && G[current][j]) {
-        seen[j] = true;
-        queue[queue_size] = j;
-        ++queue_size;
+    // traverse the graph in direction of edges
+    for (size_t n = 0; n < N; ++n) {
+      if (!seen[n] && G[v][n]) {
+        seen[n] = true;
+        queue[size++] = n;
       }
     }
-    ++queue_pos;
+    ++cur;
   }
 
   return SIZE_MAX;
@@ -128,6 +124,7 @@ void spanning_tree(size_t N, size_t start, bool G[N][N], bool T[N][N]) {
 }
 
 int main(void) {
+  // build the graph
   bool G[6][6] = {{ 0 }};
 
   add_edge(0, 1, 6, G);
@@ -139,15 +136,8 @@ int main(void) {
 
   printf("graph:\n");
   print_matrix(6, 6, G);
-  bool G2[6][6] = {
-    {false, true, true, true, true, false},
-    {false, false, false, false, false, false},
-    {false, false, false, true, true, false},
-    {false, false, true, false, false, false},
-    {false, false, false, false, false, true},
-    {false, false, false, false, true, false}
-  };
 
+  // initialize the spanning tree
   bool T[6][6] = {{ 0 }};
 
   size_t found = bfs(6, 5, 4, G);
@@ -165,7 +155,7 @@ int main(void) {
 
   add_edge(0, 4, 6, G);
   add_edge(2, 4, 6, G);
-  spanning_tree(6, 0, G2, T);
+  spanning_tree(6, 0, G, T);
 
   printf("\ntree: \n");
   print_matrix(6, 6, T);
