@@ -28,7 +28,7 @@ void split(int* B, int* A, size_t start, size_t end) {
     merge(B, A, start, middle, end);
 }
 
-void sort(int* A, size_t size) {
+void sort(size_t size, int A[size]) {
     int B[size];
     for (size_t i = 0; i < size; ++i) {
         B[i] = A[i];
@@ -36,14 +36,14 @@ void sort(int* A, size_t size) {
     split(A, B, 0, size);
 }
 
-void print_array(int* A, size_t size) {
+void print_array(size_t size, int A[size]) {
     for (size_t i = 0; i < size; ++i) {
         printf("%d ", A[i]);
     }
     printf("\n");
 }
 
-int is_sorted(int* A, size_t size) {
+int is_sorted(size_t size, int A[size]) {
     for (size_t i = 1; i < size; ++i) {
         if (A[i - 1] > A[i]) {
             return 0;
@@ -56,9 +56,9 @@ int is_sorted(int* A, size_t size) {
 
 int main(void) {
     int A[10] = { 5, 2, 1, 3, 7, 2, 9, 17, 15 }; // there is one missing
-    sort(A, 10);
-    print_array(A, 10);
-    if (is_sorted(A, 10)) {
+    sort(10, A);
+    print_array(10, A);
+    if (is_sorted(10, A)) {
         return EXIT_SUCCESS;
     } else {
         return EXIT_FAILURE;
