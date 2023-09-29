@@ -3,12 +3,6 @@
 
 int is_sorted(int*, size_t);
 
-void swap(int* A, size_t i, size_t j) {
-    int tmp = A[i];
-    A[i] = A[j];
-    A[j] = tmp;
-}
-
 void print_array(int* A, size_t size) {
     for (size_t i = 0; i < size; ++i) {
         printf("%d ", A[i]);
@@ -16,7 +10,13 @@ void print_array(int* A, size_t size) {
     printf("\n");
 }
 
-void quick_sort(int* A, size_t start, size_t pivot) {
+void swap(int* A, size_t i, size_t j) {
+    int tmp = A[i];
+    A[i] = A[j];
+    A[j] = tmp;
+}
+
+void partition(int* A, size_t start, size_t pivot) {
     if (pivot <= start) {
         return;
     }
@@ -36,12 +36,12 @@ void quick_sort(int* A, size_t start, size_t pivot) {
 
     swap(A, r, pivot);
 
-    quick_sort(A, start, pivot - 1);
-    quick_sort(A, pivot + 1, r);
+    partition(A, start, pivot - 1);
+    partition(A, pivot + 1, r);
 }
 
 void sort(int* A, size_t size) {
-    quick_sort(A, 0, size - 1);
+    partition(A, 0, size - 1);
 }
 
 
