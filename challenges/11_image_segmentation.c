@@ -105,7 +105,6 @@ int main(int argc, char* argv[static 1]) {
     }
     printf("Read in file data.\n");
 
-
     // merge the regions
     size_t merged_count;
 

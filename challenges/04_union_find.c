@@ -9,12 +9,11 @@ size_t Find(size_t i, size_t size, size_t parent[static size]) {
 }
 
 void FindReplace(size_t i, size_t value, size_t size, size_t parent[static size]) {
-    while (parent[i] != i) {
-        size_t tmp = parent[i];
-        parent[i] = value;
-        i = tmp;
+    for (size_t j = 0; j < size; ++j) {
+        if (parent[j] == i) {
+            parent[j] = value;
+        }
     }
-    parent[i] = value;
 }
 
 size_t FindCompress(size_t i, size_t size, size_t parent[static size]) {
@@ -46,9 +45,9 @@ int main(void) {
     Union(1, 2, SIZE, parent);
     print_array(SIZE, parent);
     Union(3, 4, SIZE, parent);
-    Union(4, 8, SIZE, parent);
-    Union(3, 9, SIZE, parent);
     print_array(SIZE, parent);
     Union(5, 6, SIZE, parent);
+    print_array(SIZE, parent);
+    Union(4, 5, SIZE, parent);
     print_array(SIZE, parent);
 }
