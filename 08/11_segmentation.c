@@ -15,17 +15,6 @@ struct segment {
     size_t sum;
 };
 
-bool can_merge(segment l, segment r, double const delta) {
-    double l_avg = (double) l.sum / (double) l.n_pixels;
-    double r_avg = (double) r.sum / (double) r.n_pixels;
-
-    if (l_avg > r_avg) {
-        return l_avg - r_avg < delta;
-    } else {
-        return r_avg - l_avg < delta;
-    }
-}
-
 size_t Find(size_t vertex, size_t N, segment regions[N]) {
     while (regions[vertex].parent != vertex) {
         vertex = regions[vertex].parent;
@@ -33,85 +22,37 @@ size_t Find(size_t vertex, size_t N, segment regions[N]) {
     return vertex;
 }
 
-bool Union(size_t root, size_t vertex, double delta, size_t N, segment regions[N]) {
-    size_t parent = Find(vertex, N, regions);
-    if (parent == root) {
-        return false;
+void Union(size_t root, size_t vertex, size_t N, segment regions[N]) {
+    if (regions[root].parent != root || regions[vertex].parent != vertex) {
+        return;
     }
-    if (!can_merge(regions[root], regions[parent], delta)) {
-        return false;
-    }
-    regions[parent].parent = root; 
-    regions[root].n_pixels += regions[parent].n_pixels;
-    regions[root].sum += regions[parent].sum;
-    return true;
+    regions[vertex].parent = root; 
+    regions[root].n_pixels += regions[vertex].n_pixels;
+    regions[root].sum += regions[vertex].sum;
 }
 
-void parse_img(BMP* bmp, size_t width, size_t height, segment regions[width * height]) {
-    // since we want greyscale, average rgb values
-    for (size_t x = 0; x < width; ++x) {
-        for (size_t y = 0; y < height; ++y) {
-            unsigned char r, g, b;
-            get_pixel_rgb(bmp, x, y, &r, &g, &b);
-            unsigned char greyscale = (r + g + b) / 3;
-            size_t index = x + width * y;
-            regions[index] = (segment) {
-                .parent = index,
-                .value = greyscale,
-                .n_pixels = 1,
-                .sum = greyscale
-            };
-        }
-    }
+bool can_merge(segment l, segment r, double const delta) {
+    double l_avg = (double) l.sum / (double) l.n_pixels;
+    double r_avg = (double) r.sum / (double) r.n_pixels;
+    return fabs(l_avg - r_avg) <= delta;
 }
 
-bool try_to_merge(size_t vertex, 
+bool merge(size_t vertex, 
                   size_t adjacent, 
                   double delta, 
                   size_t size, 
                   segment regions[size]) {
-    if (regions[vertex].parent != vertex) return 0;
+    // get the roots
+    size_t root_vertex = Find(vertex, size, regions);
+    size_t root_adjacent = Find(adjacent, size, regions);
+    if (root_vertex == root_adjacent || !can_merge(regions[root_vertex], regions[root_adjacent], delta)) 
+        return false;
 
     size_t adjacent_root = Find(adjacent, size, regions);
     assert(adjacent_root != vertex);
-    return Union(adjacent_root, vertex, delta, size, regions);
-}
 
-bool merge_left(size_t vertex, 
-                double delta, 
-                size_t width, 
-                size_t height, 
-                segment regions[width * height]) {
-    return try_to_merge(vertex, vertex - 1, delta, width * height, regions);
-}
-
-bool merge_top(size_t vertex, 
-               double delta, 
-               size_t width, 
-               size_t height, 
-               segment regions[width * height]) {
-    return try_to_merge(vertex, vertex - width, delta, width * height, regions);
-}
-
-void merge_regions(double delta, 
-                   size_t width, 
-                   size_t height, 
-                   segment regions[width * height]) {
-    size_t merged_count;
-
-    do {
-        merged_count = 0;
-
-        for (size_t y = 0; y < height; ++y) {
-            for (size_t x = 0; x < width; ++x) {
-                if ( x > 0 && merge_left(x + y * width, delta, width, height, regions) || 
-                     y > 0 && merge_top(x + y * width, delta, width, height, regions))
-                    ++merged_count;
-            }
-        }
-
-        printf("Merged %zu regions\n", merged_count);
-    } while (merged_count > 0);
+    Union(root_adjacent, root_vertex, size, regions);
+    return true;
 }
 
 /* 
@@ -147,11 +88,44 @@ int main(int argc, char* argv[static 1]) {
         width, 
         height);
 
-    parse_img(bmp, width, height, regions);
+    // parse image, since we want greyscale, average rgb values
+    for (size_t x = 0; x < width; ++x) {
+        for (size_t y = 0; y < height; ++y) {
+            unsigned char r, g, b;
+            get_pixel_rgb(bmp, x, y, &r, &g, &b);
+            unsigned char greyscale = (r + g + b) / 3;
+            size_t index = x + width * y;
+            regions[index] = (segment) {
+                .parent = index,
+                .value = greyscale,
+                .n_pixels = 1,
+                .sum = greyscale
+            };
+        }
+    }
     printf("Read in file data.\n");
 
 
-    merge_regions(delta, width, height, regions);
+    // merge the regions
+    size_t merged_count;
+
+    do {
+        merged_count = 0;
+
+        for (size_t y = 0; y < height; ++y) {
+            for (size_t x = 0; x < width; ++x) {
+                size_t vertex = x + y * width;
+                // try to merge to the left
+                if (x > 0 &&  merge(vertex, vertex - 1, delta, width * height, regions))
+                    ++merged_count;
+                // try to merge to the top
+                if (y > 0 && merge(vertex, vertex - width, delta, width * height, regions))
+                    ++merged_count;
+            }
+        }
+        printf("Merged %zu regions\n", merged_count);
+    } while (merged_count > 0);
+
     printf("Done merging.\n");
 
     // write segments to file
@@ -162,6 +136,7 @@ int main(int argc, char* argv[static 1]) {
             set_pixel_rgb(bmp, x, y, px, px, px);
         }
     }
+
     bwrite(bmp, "out.bmp");
     bclose(bmp);
 
