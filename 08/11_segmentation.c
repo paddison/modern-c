@@ -47,14 +47,71 @@ bool Union(size_t root, size_t vertex, double delta, size_t N, segment regions[N
     return true;
 }
 
-void print(size_t width, size_t height, unsigned char M[height * width]) {
-    for (size_t r = 0; r < height; ++r) {
-        printf("[");
-        for (size_t c = 0; c < width; ++c) {
-            printf("%u ", M[r * width + c] / 10);
+void parse_img(BMP* bmp, size_t width, size_t height, segment regions[width * height]) {
+    // since we want greyscale, average rgb values
+    for (size_t x = 0; x < width; ++x) {
+        for (size_t y = 0; y < height; ++y) {
+            unsigned char r, g, b;
+            get_pixel_rgb(bmp, x, y, &r, &g, &b);
+            unsigned char greyscale = (r + g + b) / 3;
+            size_t index = x + width * y;
+            regions[index] = (segment) {
+                .parent = index,
+                .value = greyscale,
+                .n_pixels = 1,
+                .sum = greyscale
+            };
         }
-        printf("]\n");
     }
+}
+
+bool try_to_merge(size_t vertex, 
+                  size_t adjacent, 
+                  double delta, 
+                  size_t size, 
+                  segment regions[size]) {
+    if (regions[vertex].parent != vertex) return 0;
+
+    size_t adjacent_root = Find(adjacent, size, regions);
+    assert(adjacent_root != vertex);
+    return Union(adjacent_root, vertex, delta, size, regions);
+}
+
+bool merge_left(size_t vertex, 
+                double delta, 
+                size_t width, 
+                size_t height, 
+                segment regions[width * height]) {
+    return try_to_merge(vertex, vertex - 1, delta, width * height, regions);
+}
+
+bool merge_top(size_t vertex, 
+               double delta, 
+               size_t width, 
+               size_t height, 
+               segment regions[width * height]) {
+    return try_to_merge(vertex, vertex - width, delta, width * height, regions);
+}
+
+void merge_regions(double delta, 
+                   size_t width, 
+                   size_t height, 
+                   segment regions[width * height]) {
+    size_t merged_count;
+
+    do {
+        merged_count = 0;
+
+        for (size_t y = 0; y < height; ++y) {
+            for (size_t x = 0; x < width; ++x) {
+                if ( x > 0 && merge_left(x + y * width, delta, width, height, regions) || 
+                     y > 0 && merge_top(x + y * width, delta, width, height, regions))
+                    ++merged_count;
+            }
+        }
+
+        printf("Merged %zu regions\n", merged_count);
+    } while (merged_count > 0);
 }
 
 /* 
@@ -71,6 +128,7 @@ int main(int argc, char* argv[static 1]) {
 
     BMP* bmp = bopen(argv[1]);
     double delta = strtof(argv[2], 0);
+
     if (delta > 255. || delta < 0.) {
         fprintf(stderr, "delta has to be between 0 and 255");
     }
@@ -83,79 +141,30 @@ int main(int argc, char* argv[static 1]) {
     // get picture dimension
     unsigned int width = get_width(bmp);
     unsigned int height = get_height(bmp);
-    unsigned long size = height * width;
-    segment regions[size];
+    segment regions[width * height];
 
     printf("width: %d, height: %d\n", 
         width, 
         height);
 
-    // read in data
-    // since we want greyscale, average rgb values
-    for (size_t x = 0; x < width; ++x) {
-        for (size_t y = 0; y < height; ++y) {
-            unsigned char r, g, b;
-            get_pixel_rgb(bmp, x, y, &r, &g, &b);
-            unsigned char greyscale = (r + g + b) / 3;
-            size_t index = x + width * y;
-            regions[index] = (segment) {
-                .parent = index,
-                .value = greyscale,
-                .n_pixels = 1,
-                .sum = greyscale
-            };
-        }
-    }
+    parse_img(bmp, width, height, regions);
     printf("Read in file data.\n");
 
-    size_t merged_count = 1;
-    while (merged_count > 0) {
-        merged_count = 0;
-        for (size_t i = 0; i < size; ++i) {
-            // only consider roots
-            if (regions[i].parent != i) continue;
 
-            // always merge up and left. this way, a root will always have a 
-            // non root as adjacent region
-            if (i % width > 0) {
-                // get region to the left
-                size_t left = Find(i - 1, size, regions);
-                assert(left != i);
-                if (Union(left, i, delta, size, regions)) {
-                    ++merged_count;
-                }
-            }
-        }    
-        for (size_t i = 0; i < size; ++i) {
-            // only consider roots
-            if (regions[i].parent != i) continue;
-
-            // always merge up and left. this way, a root will always have a 
-            // non root as adjacent region
-            if (i / width > 0) {
-                // get region to the top
-                size_t left = Find(i - width, size, regions);
-                assert(left != i);
-                if (Union(left, i, delta, size, regions)) {
-                    ++merged_count;
-                }
-            }
-        }    
-        printf("Merged %zu regions\n", merged_count);
-    }
-
+    merge_regions(delta, width, height, regions);
     printf("Done merging.\n");
 
     // write segments to file
     for (size_t x = 0; x < width; ++x) {
         for (size_t y = 0; y < height; ++y) {
-            segment root = regions[Find(x + y * width, size, regions)];
+            segment root = regions[Find(x + y * width, width * height, regions)];
             unsigned char px = root.sum / root.n_pixels;
             set_pixel_rgb(bmp, x, y, px, px, px);
         }
     }
     bwrite(bmp, "out.bmp");
-    printf("wrote output to out.bmp\n");
     bclose(bmp);
+
+    printf("Wrote output to out.bmp\n");
     return EXIT_SUCCESS;
 }
