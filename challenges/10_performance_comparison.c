@@ -36,6 +36,7 @@ void merge_sort(size_t size, int A[size]) {
     }
     split(A, B, 0, size);
 }
+
 void swap(int* A, size_t i, size_t j) {
     int tmp = A[i];
     A[i] = A[j];
