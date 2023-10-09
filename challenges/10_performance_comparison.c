@@ -83,16 +83,24 @@ void quicksort(int* A, int lo, int hi) {
   quicksort(A, p + 1, hi); // Right side of pivot
 }
 
+int cmp_int(const void* a, const void* b) {
+    return *((int* )a) - *((int*) b);
+}
+
 int main(int argc, char* argv[argc+1]) {
     // create arrays with the specified amount of data:
     for (size_t i = 1; i < argc; ++i) {
         unsigned long n = strtoul(argv[i], 0, 0);
         int Q[n]; 
         int M[n];
+        int I[n];
         struct timespec q_start;
         struct timespec q_end;
         struct timespec m_start;
         struct timespec m_end;
+        struct timespec internal_start;
+        struct timespec internal_end;
+
 
         // set the seed
         srand(time(0));
@@ -107,6 +115,12 @@ int main(int argc, char* argv[argc+1]) {
             M[j] = Q[j];
         }
 
+        // copy elements from Q to I
+        for (size_t j = 0; j < n; ++j) {
+            I[j] = Q[j];
+        }
+
+
         // sort them and measure the time elapsed
         timespec_get(&q_start, TIME_UTC);
         quicksort(Q, 0, n - 1);
@@ -118,10 +132,16 @@ int main(int argc, char* argv[argc+1]) {
         timespec_get(&m_end, TIME_UTC);
         long m_diff = m_end.tv_nsec - m_start.tv_nsec;
 
+        timespec_get(&internal_start, TIME_UTC);
+        qsort(I, n, sizeof(int), cmp_int);
+        timespec_get(&internal_end, TIME_UTC);
+        long i_diff = internal_end.tv_nsec - internal_start.tv_nsec;
+
         // print the results
         printf("n: %lu\n", n);
         printf("Quick Sort: %lu us\n", q_diff / 1000);
         printf("Merge Sort: %lu us\n", m_diff / 1000);
+        printf("    C Sort: %lu us\n", i_diff / 1000);
     }
 
     return EXIT_SUCCESS;
