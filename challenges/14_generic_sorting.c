@@ -4,20 +4,21 @@
 typedef int cmp_f(void*, void*);
 
 void copy_into(void* a, void* b, const size_t size) {
-    char* target = (char *) a;
-    char* source = (char *) b;
+    unsigned char* target =  a;
+    unsigned char* source =  b;
 
     for (size_t i = 0; i < size; ++i) {
         target[i] = source[i];
     }
 }
 
-void merge(void* B, void* A, size_t start, size_t middle, size_t end, size_t size, cmp_f* cmp) {
+void merge(void* B, void* A, size_t start, size_t middle, 
+           size_t end, size_t size, cmp_f* cmp) {
     size_t l = start;
     size_t r = middle;
 
     for (size_t i = start; i < end; ++i) {
-        if (r == end || (l != middle && cmp(A + (r * size), A + (l * size)) > 0)) {
+        if (r == end || (l != middle && cmp(A + r * size, A + l * size) > 0)) {
             copy_into(B + i * size, A + l * size, size);
             ++l;
         } else {
@@ -27,7 +28,8 @@ void merge(void* B, void* A, size_t start, size_t middle, size_t end, size_t siz
     }
 }
 
-void split(void* B, void* A, size_t start, size_t end, size_t size, cmp_f* cmp) {
+void split(void* B, void* A, 
+           size_t start, size_t end, size_t size, cmp_f* cmp) {
     if (end - start <= 1) {
         return;
     }
@@ -51,9 +53,9 @@ void m_sort(size_t n_items, void* A, size_t size, cmp_f* cmp) {
 
 void swap(void* A, size_t i, size_t j, size_t size) {
     if (i == j) return;
-    char* a = (char*) A;
+    unsigned char* a =  A;
     for (size_t k = 0; k < size; ++k) {
-        char tmp = a[i * size + k];
+        unsigned char tmp = a[i * size + k];
         a[i * size + k] = a[j * size + k];
         a[j * size + k] = tmp;
     }
